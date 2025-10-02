@@ -20,7 +20,7 @@ const awsConfig = {
           redirectSignOut: [
             import.meta.env.VITE_REDIRECT_SIGN_OUT || 'http://localhost:5173/',
           ],
-          responseType: 'code',
+          responseType: 'code' as const,
         },
         email: true,
       },

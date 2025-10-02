@@ -45,7 +45,8 @@ export const useAuth = () => {
   useEffect(() => {
     checkAuthState();
 
-    const hubListener = Hub.listen('auth', ({ payload: { event, data } }) => {
+    const hubListener = Hub.listen('auth', ({ payload }) => {
+      const { event } = payload;
       switch (event) {
         case 'signedIn':
           checkAuthState();
@@ -58,14 +59,14 @@ export const useAuth = () => {
             error: null,
           });
           break;
-        case 'signUp':
+        case 'signInWithRedirect':
           checkAuthState();
           break;
-        case 'signIn_failure':
-        case 'signUp_failure':
+        case 'signInWithRedirect_failure':
+        case 'tokenRefresh_failure':
           setAuthState((prev) => ({
             ...prev,
-            error: data?.message || 'Authentication failed',
+            error: 'Authentication failed',
             isLoading: false,
           }));
           break;
