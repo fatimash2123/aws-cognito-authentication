@@ -1,0 +1,323 @@
+# React Best Practices
+
+This document outlines the best practices followed in this React application with AWS Cognito authentication.
+
+## Table of Contents
+
+- [Component Architecture](#component-architecture)
+- [State Management](#state-management)
+- [TypeScript Usage](#typescript-usage)
+- [Styling Guidelines](#styling-guidelines)
+- [Authentication Patterns](#authentication-patterns)
+- [Error Handling](#error-handling)
+- [Performance Optimization](#performance-optimization)
+- [Code Organization](#code-organization)
+
+## Component Architecture
+
+### 1. Functional Components with Hooks
+
+- Use functional components with React hooks instead of class components
+- Prefer `useState` and `useEffect` for local state management
+- Use custom hooks for reusable logic
+
+```tsx
+// ✅ Good
+const MyComponent: React.FC = () => {
+  const [state, setState] = useState(initialState);
+  return <div>{state}</div>;
+};
+
+// ❌ Avoid
+class MyComponent extends React.Component {
+  // ...
+}
+```
+
+### 2. Component Composition
+
+- Break down complex components into smaller, focused components
+- Use composition over inheritance
+- Create reusable UI components in a dedicated `ui` folder
+
+```tsx
+// ✅ Good - Composed components
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <Button>Action</Button>
+  </CardContent>
+</Card>
+```
+
+### 3. Props Interface Definition
+
+- Always define TypeScript interfaces for component props
+- Use descriptive prop names
+- Make optional props explicit
+
+```tsx
+// ✅ Good
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'default' | 'destructive' | 'outline';
+  size?: 'default' | 'sm' | 'lg';
+  isLoading?: boolean;
+}
+```
+
+## State Management
+
+### 1. Context API for Global State
+
+- Use React Context for authentication and global application state
+- Create custom hooks to consume context
+- Avoid prop drilling
+
+```tsx
+// ✅ Good - Context with custom hook
+const useAuthContext = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuthContext must be used within an AuthProvider');
+  }
+  return context;
+};
+```
+
+### 2. Local State Management
+
+- Use `useState` for component-local state
+- Use `useReducer` for complex state logic
+- Keep state as close to where it's used as possible
+
+### 3. State Updates
+
+- Always use functional updates when new state depends on previous state
+- Batch state updates when possible
+
+```tsx
+// ✅ Good
+setState((prev) => ({ ...prev, newValue: value }));
+
+// ❌ Avoid
+setState({ ...state, newValue: value });
+```
+
+## TypeScript Usage
+
+### 1. Strict Type Checking
+
+- Enable strict mode in TypeScript configuration
+- Use explicit types for function parameters and return values
+- Avoid `any` type unless absolutely necessary
+
+### 2. Interface Design
+
+- Create interfaces for all data structures
+- Use generic types for reusable components
+- Extend built-in HTML element props when appropriate
+
+```tsx
+// ✅ Good
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
+```
+
+### 3. Type Safety
+
+- Use type guards for runtime type checking
+- Leverage TypeScript's discriminated unions
+- Use const assertions for immutable data
+
+## Styling Guidelines
+
+### 1. Tailwind CSS
+
+- Use Tailwind utility classes for styling
+- Create custom CSS only when necessary
+- Use CSS variables for theming
+
+### 2. Component Styling
+
+- Use `cn` utility for conditional classes
+- Create reusable style variants
+- Follow mobile-first responsive design
+
+```tsx
+// ✅ Good
+<Button
+  className={cn('w-full justify-start gap-3 h-11', className)}
+  variant='outline'
+>
+  Content
+</Button>
+```
+
+### 3. Design System
+
+- Maintain consistent spacing, colors, and typography
+- Use semantic color names
+- Create reusable component variants
+
+## Authentication Patterns
+
+### 1. Authentication Context
+
+- Centralize authentication logic in a context provider
+- Use custom hooks for authentication operations
+- Handle loading and error states consistently
+
+### 2. Route Protection
+
+- Create higher-order components for protected routes
+- Redirect unauthenticated users to sign-in page
+- Handle authentication state changes
+
+### 3. Social Authentication
+
+- Implement consistent error handling for all providers
+- Use loading states during authentication
+- Provide fallback options
+
+## Error Handling
+
+### 1. Error Boundaries
+
+- Implement error boundaries for component error handling
+- Log errors to monitoring services
+- Provide user-friendly error messages
+
+### 2. Form Validation
+
+- Validate input on both client and server side
+- Show validation errors immediately
+- Use consistent error message patterns
+
+### 3. API Error Handling
+
+- Handle different types of API errors appropriately
+- Provide retry mechanisms where appropriate
+- Log errors for debugging
+
+## Performance Optimization
+
+### 1. Code Splitting
+
+- Use React.lazy for route-based code splitting
+- Implement Suspense boundaries
+- Load components only when needed
+
+### 2. Memoization
+
+- Use React.memo for expensive components
+- Use useMemo for expensive calculations
+- Use useCallback for stable function references
+
+### 3. Bundle Optimization
+
+- Use dynamic imports for large dependencies
+- Optimize images and assets
+- Monitor bundle size
+
+## Code Organization
+
+### 1. Folder Structure
+
+```
+src/
+├── components/
+│   └── ui/           # Reusable UI components
+├── pages/            # Page components
+├── hooks/            # Custom hooks
+├── contexts/         # React contexts
+├── types/            # TypeScript type definitions
+├── utils/            # Utility functions
+└── config/           # Configuration files
+```
+
+### 2. File Naming
+
+- Use PascalCase for component files
+- Use camelCase for utility files
+- Use descriptive names that indicate purpose
+
+### 3. Import Organization
+
+- Group imports by type (React, third-party, local)
+- Use absolute imports for better maintainability
+- Sort imports alphabetically within groups
+
+```tsx
+// ✅ Good import organization
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { Button } from '../components/ui/Button';
+import { useAuthContext } from '../contexts/AuthContext';
+import { SignInData } from '../types/auth';
+```
+
+## Testing Guidelines
+
+### 1. Component Testing
+
+- Write unit tests for all components
+- Test user interactions and state changes
+- Mock external dependencies
+
+### 2. Integration Testing
+
+- Test authentication flows end-to-end
+- Test form submissions and validations
+- Test error scenarios
+
+### 3. Accessibility Testing
+
+- Ensure proper ARIA labels and roles
+- Test keyboard navigation
+- Validate color contrast ratios
+
+## Security Best Practices
+
+### 1. Input Sanitization
+
+- Sanitize all user inputs
+- Validate data on both client and server
+- Use proper encoding for special characters
+
+### 2. Authentication Security
+
+- Store tokens securely
+- Implement proper session management
+- Use HTTPS in production
+
+### 3. Environment Variables
+
+- Never commit sensitive data to version control
+- Use environment variables for configuration
+- Validate environment variables at startup
+
+## Documentation
+
+### 1. Code Comments
+
+- Write clear, concise comments for complex logic
+- Document component props and their purposes
+- Explain business logic and decisions
+
+### 2. README Files
+
+- Maintain up-to-date README files
+- Include setup and deployment instructions
+- Document environment variables and configuration
+
+### 3. Type Documentation
+
+- Use JSDoc comments for complex types
+- Document function parameters and return values
+- Provide usage examples where helpful

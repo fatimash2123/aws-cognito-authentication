@@ -1,0 +1,377 @@
+# Component Architecture Guide
+
+This document outlines the component architecture patterns used in this React application.
+
+## Table of Contents
+
+- [Component Hierarchy](#component-hierarchy)
+- [UI Components](#ui-components)
+- [Page Components](#page-components)
+- [Context Components](#context-components)
+- [Custom Hooks](#custom-hooks)
+- [Type Definitions](#type-definitions)
+- [Styling Patterns](#styling-patterns)
+
+## Component Hierarchy
+
+```
+App
+├── AuthProvider (Context)
+├── Router
+│   ├── ProtectedRoute (HOC)
+│   ├── PublicRoute (HOC)
+│   └── Routes
+│       ├── SignUp (Page)
+│       ├── SignIn (Page)
+│       └── Home (Page)
+└── UI Components
+    ├── Button
+    ├── Input
+    ├── Card
+    └── SocialButton
+```
+
+## UI Components
+
+### Design Principles
+
+1. **Reusability**: Components should be generic and reusable across the application
+2. **Composability**: Components should work well together
+3. **Accessibility**: All components should be accessible
+4. **Type Safety**: Full TypeScript support with proper prop interfaces
+
+### Component Structure
+
+```tsx
+// Component file structure
+src/components/ui/
+├── Button.tsx
+├── Input.tsx
+├── Card.tsx
+└── SocialButton.tsx
+```
+
+### Button Component
+
+```tsx
+// Features:
+// - Multiple variants (default, destructive, outline, secondary, ghost, link)
+// - Multiple sizes (default, sm, lg, icon)
+// - Loading state support
+// - Full TypeScript support
+// - Forward ref support
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?:
+    | 'default'
+    | 'destructive'
+    | 'outline'
+    | 'secondary'
+    | 'ghost'
+    | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  isLoading?: boolean;
+}
+```
+
+### Input Component
+
+```tsx
+// Features:
+// - Label support
+// - Error state handling
+// - Helper text
+// - Consistent styling
+// - Form integration
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
+```
+
+### Card Component
+
+```tsx
+// Features:
+// - Composable sub-components (Header, Content, Footer, Title, Description)
+// - Consistent spacing and styling
+// - Flexible content areas
+
+// Usage:
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+    <CardDescription>Description</CardDescription>
+  </CardHeader>
+  <CardContent>Content goes here</CardContent>
+  <CardFooter>Actions go here</CardFooter>
+</Card>
+```
+
+### SocialButton Component
+
+```tsx
+// Features:
+// - Support for multiple providers (Google, Facebook, Apple)
+// - Provider-specific icons
+// - Consistent styling across providers
+// - Loading state support
+
+interface SocialButtonProps extends Omit<ButtonProps, 'variant'> {
+  provider: 'google' | 'facebook' | 'apple';
+  isLoading?: boolean;
+}
+```
+
+## Page Components
+
+### Design Principles
+
+1. **Single Responsibility**: Each page handles one specific route
+2. **State Management**: Use context for global state, local state for page-specific data
+3. **Error Handling**: Consistent error handling and user feedback
+4. **Loading States**: Proper loading indicators during async operations
+
+### SignUp Page
+
+```tsx
+// Features:
+// - Form validation
+// - Error handling
+// - Social authentication
+// - Navigation to sign-in after successful registration
+
+// State management:
+const [formData, setFormData] = useState<SignUpData>({...});
+const [formErrors, setFormErrors] = useState<Partial<SignUpData>>({});
+```
+
+### SignIn Page
+
+```tsx
+// Features:
+// - Form validation
+// - Remember me functionality
+// - Social authentication
+// - Redirect to home after successful sign-in
+
+// State management:
+const [formData, setFormData] = useState<SignInData>({...});
+const [formErrors, setFormErrors] = useState<Partial<SignInData>>({});
+```
+
+### Home Page
+
+```tsx
+// Features:
+// - User profile display
+// - Account statistics
+// - Quick actions
+// - Getting started guide
+
+// State management:
+// Uses AuthContext for user data and authentication state
+```
+
+## Context Components
+
+### AuthProvider
+
+```tsx
+// Purpose: Provides authentication state and methods to the entire app
+// Features:
+// - User state management
+// - Authentication methods (sign in, sign up, sign out)
+// - Social authentication
+// - Error handling
+// - Loading states
+
+interface AuthContextType extends AuthState {
+  signUp: (data: SignUpData) => Promise<void>;
+  signIn: (data: SignInData) => Promise<void>;
+  signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  clearError: () => void;
+}
+```
+
+## Custom Hooks
+
+### useAuth Hook
+
+```tsx
+// Purpose: Encapsulates authentication logic
+// Features:
+// - AWS Amplify integration
+// - Hub listener for auth events
+// - State management
+// - Error handling
+
+export const useAuth = () => {
+  const [authState, setAuthState] = useState<AuthState>({...});
+
+  // Authentication methods
+  const signUp = async (data: SignUpData) => {...};
+  const signIn = async (data: SignInData) => {...};
+  const signOut = async () => {...};
+
+  return { ...authState, signUp, signIn, signOut, ... };
+};
+```
+
+## Type Definitions
+
+### Authentication Types
+
+```tsx
+// User interface
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+  picture?: string;
+  emailVerified: boolean;
+}
+
+// Authentication state
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Form data interfaces
+interface SignUpData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  name?: string;
+}
+
+interface SignInData {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+```
+
+## Styling Patterns
+
+### Tailwind CSS Integration
+
+1. **Utility Classes**: Use Tailwind utility classes for styling
+2. **Custom CSS Variables**: Define theme colors using CSS variables
+3. **Component Variants**: Create consistent component variants
+4. **Responsive Design**: Mobile-first responsive design approach
+
+### Theme Configuration
+
+```css
+/* CSS Variables for theming */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  /* ... more variables */
+}
+```
+
+### Component Styling
+
+```tsx
+// Using cn utility for conditional classes
+<Button
+  className={cn('w-full justify-start gap-3 h-11', className)}
+  variant='outline'
+>
+  Content
+</Button>
+```
+
+## Best Practices
+
+### 1. Component Design
+
+- **Single Responsibility**: Each component should have one clear purpose
+- **Props Interface**: Always define TypeScript interfaces for props
+- **Default Props**: Provide sensible defaults for optional props
+- **Forward Refs**: Use forwardRef for components that need ref access
+
+### 2. State Management
+
+- **Local State**: Use useState for component-specific state
+- **Global State**: Use Context for application-wide state
+- **State Updates**: Use functional updates when new state depends on previous state
+- **Error States**: Always handle error states in components
+
+### 3. Event Handling
+
+- **Form Submission**: Use controlled components for forms
+- **Input Changes**: Handle input changes consistently
+- **Button Clicks**: Provide loading states for async operations
+- **Error Handling**: Display user-friendly error messages
+
+### 4. Accessibility
+
+- **Semantic HTML**: Use appropriate HTML elements
+- **ARIA Labels**: Provide proper ARIA labels and roles
+- **Keyboard Navigation**: Ensure all interactive elements are keyboard accessible
+- **Focus Management**: Manage focus appropriately
+
+### 5. Performance
+
+- **Memoization**: Use React.memo for expensive components
+- **Callback Optimization**: Use useCallback for stable function references
+- **Lazy Loading**: Implement code splitting for large components
+- **Bundle Size**: Monitor and optimize bundle size
+
+## Testing Strategy
+
+### 1. Unit Testing
+
+- Test component rendering
+- Test user interactions
+- Test state changes
+- Test error scenarios
+
+### 2. Integration Testing
+
+- Test authentication flows
+- Test form submissions
+- Test navigation between pages
+- Test error handling
+
+### 3. Accessibility Testing
+
+- Test keyboard navigation
+- Test screen reader compatibility
+- Test color contrast
+- Test focus management
+
+## Future Enhancements
+
+### 1. Component Library
+
+- Extract UI components to a separate package
+- Add Storybook for component documentation
+- Implement automated visual regression testing
+
+### 2. Advanced Features
+
+- Add form validation library (e.g., React Hook Form)
+- Implement advanced error boundaries
+- Add internationalization support
+- Implement dark mode theme
+
+### 3. Performance Optimizations
+
+- Implement virtual scrolling for large lists
+- Add image optimization
+- Implement service worker for offline support
+- Add performance monitoring

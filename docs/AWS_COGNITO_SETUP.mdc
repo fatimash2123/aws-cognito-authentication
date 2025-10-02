@@ -1,0 +1,297 @@
+# AWS Cognito Setup Guide
+
+This guide explains how to set up AWS Cognito for authentication in this React application.
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [AWS Cognito User Pool Setup](#aws-cognito-user-pool-setup)
+- [Social Identity Providers](#social-identity-providers)
+- [Environment Configuration](#environment-configuration)
+- [Testing Authentication](#testing-authentication)
+- [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+- AWS Account with appropriate permissions
+- Node.js and npm installed
+- Basic understanding of AWS services
+
+## AWS Cognito User Pool Setup
+
+### 1. Create User Pool
+
+1. Navigate to AWS Cognito in the AWS Console
+2. Click "Create user pool"
+3. Configure the following settings:
+
+#### Sign-in Experience
+
+- **Cognito user pool sign-in options**: Email
+- **User name requirements**: No requirements
+- **Case sensitivity**: Not case sensitive
+
+#### Security Requirements
+
+- **Password policy**:
+  - Minimum length: 8 characters
+  - Require uppercase letters: Yes
+  - Require lowercase letters: Yes
+  - Require numbers: Yes
+  - Require symbols: Yes
+- **Multi-factor authentication**: Optional (recommended for production)
+
+#### Sign-up Experience
+
+- **Self-service sign-up**: Enabled
+- **Cognito-assisted verification**: Email
+- **Required attributes**: Email, Name
+- **Custom attributes**: None (unless needed)
+
+#### Message Delivery
+
+- **Email provider**: Send email with Cognito
+- **From email address**: Use Cognito default
+
+### 2. Configure App Integration
+
+1. **App client settings**:
+
+   - **App type**: Public client
+   - **Authentication flows**:
+     - ✅ ALLOW_USER_SRP_AUTH
+     - ✅ ALLOW_REFRESH_TOKEN_AUTH
+     - ✅ ALLOW_USER_PASSWORD_AUTH
+   - **OAuth 2.0 grant types**:
+     - ✅ Authorization code grant
+     - ✅ Implicit grant
+   - **OAuth scopes**:
+     - ✅ email
+     - ✅ openid
+     - ✅ profile
+
+2. **Hosted authentication pages**:
+   - **Domain**: Choose a unique domain name
+   - **App client**: Select your app client
+   - **OAuth 2.0 settings**:
+     - **Allowed callback URLs**:
+       - `http://localhost:5173/` (development)
+       - `https://yourdomain.com/` (production)
+     - **Allowed sign-out URLs**:
+       - `http://localhost:5173/` (development)
+       - `https://yourdomain.com/` (production)
+
+### 3. Note Important Values
+
+After creating the user pool, note down these values:
+
+- **User Pool ID**: `us-east-1_XXXXXXXXX`
+- **App Client ID**: `your-client-id`
+- **Domain**: `your-domain.auth.us-east-1.amazoncognito.com`
+- **Region**: `us-east-1` (or your chosen region)
+
+## Social Identity Providers
+
+### 1. Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Configure:
+   - **Application type**: Web application
+   - **Authorized redirect URIs**:
+     - `https://your-domain.auth.us-east-1.amazoncognito.com/oauth2/idpresponse`
+6. Note the **Client ID** and **Client Secret**
+
+#### Configure in Cognito:
+
+1. Go to your User Pool → "Sign-in experience" → "Federated identity provider sign-in"
+2. Click "Add identity provider" → "Google"
+3. Enter:
+   - **Google client ID**: Your Google client ID
+   - **Google client secret**: Your Google client secret
+   - **Authorize scopes**: `email openid profile`
+4. Click "Add identity provider"
+
+### 2. Facebook OAuth Setup
+
+1. Go to [Facebook Developers](https://developers.facebook.com/)
+2. Create a new app
+3. Add "Facebook Login" product
+4. Configure:
+   - **Valid OAuth Redirect URIs**:
+     - `https://your-domain.auth.us-east-1.amazoncognito.com/oauth2/idpresponse`
+5. Note the **App ID** and **App Secret**
+
+#### Configure in Cognito:
+
+1. Go to your User Pool → "Sign-in experience" → "Federated identity provider sign-in"
+2. Click "Add identity provider" → "Facebook"
+3. Enter:
+   - **Facebook app ID**: Your Facebook app ID
+   - **Facebook app secret**: Your Facebook app secret
+4. Click "Add identity provider"
+
+### 3. Apple OAuth Setup
+
+1. Go to [Apple Developer Console](https://developer.apple.com/)
+2. Create a new App ID with Sign In with Apple capability
+3. Create a Services ID
+4. Configure:
+   - **Return URLs**:
+     - `https://your-domain.auth.us-east-1.amazoncognito.com/oauth2/idpresponse`
+5. Note the **Services ID** and **Team ID**
+
+#### Configure in Cognito:
+
+1. Go to your User Pool → "Sign-in experience" → "Federated identity provider sign-in"
+2. Click "Add identity provider" → "Apple"
+3. Enter:
+   - **Services ID**: Your Apple Services ID
+   - **Team ID**: Your Apple Team ID
+   - **Key ID**: Your Apple Key ID
+   - **Private key**: Your Apple private key
+4. Click "Add identity provider"
+
+## Environment Configuration
+
+### 1. Create Environment File
+
+Create a `.env` file in your project root:
+
+```env
+# AWS Cognito Configuration
+VITE_AWS_REGION=us-east-1
+VITE_USER_POOL_ID=us-east-1_XXXXXXXXX
+VITE_USER_POOL_WEB_CLIENT_ID=your-client-id
+VITE_OAUTH_DOMAIN=your-domain.auth.us-east-1.amazoncognito.com
+
+# OAuth Redirect URLs
+VITE_REDIRECT_SIGN_IN=http://localhost:5173/
+VITE_REDIRECT_SIGN_OUT=http://localhost:5173/
+
+# Social Provider Client IDs
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_FACEBOOK_CLIENT_ID=your-facebook-client-id
+VITE_APPLE_CLIENT_ID=your-apple-client-id
+```
+
+### 2. Update AWS Configuration
+
+The configuration is automatically loaded from environment variables in `src/config/aws-config.ts`. Make sure all values are correctly set.
+
+### 3. Production Configuration
+
+For production, update the redirect URLs to your production domain:
+
+```env
+VITE_REDIRECT_SIGN_IN=https://yourdomain.com/
+VITE_REDIRECT_SIGN_OUT=https://yourdomain.com/
+```
+
+## Testing Authentication
+
+### 1. Start Development Server
+
+```bash
+npm run dev
+```
+
+### 2. Test Email/Password Authentication
+
+1. Navigate to `http://localhost:5173/signup`
+2. Create a new account with email and password
+3. Check your email for verification code
+4. Sign in with your credentials
+
+### 3. Test Social Authentication
+
+1. Click on Google/Facebook/Apple sign-in buttons
+2. Complete the OAuth flow
+3. Verify you're redirected back to the application
+
+### 4. Test Protected Routes
+
+1. Try accessing `http://localhost:5173/` without authentication
+2. Verify you're redirected to the sign-in page
+3. After signing in, verify you can access the home page
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. "Invalid redirect URI" Error
+
+- Ensure redirect URIs in Cognito match exactly with your environment variables
+- Check for trailing slashes and protocol (http vs https)
+
+#### 2. "User does not exist" Error
+
+- Verify the user pool ID and region are correct
+- Check if the user is confirmed in the Cognito console
+
+#### 3. Social Login Not Working
+
+- Verify the OAuth provider configuration in Cognito
+- Check that the client IDs and secrets are correct
+- Ensure the redirect URI is properly configured in the OAuth provider
+
+#### 4. CORS Issues
+
+- Add your domain to the allowed origins in Cognito
+- Check that the OAuth domain is correctly configured
+
+### Debug Steps
+
+1. **Check Browser Console**: Look for JavaScript errors
+2. **Check Network Tab**: Verify API calls are being made correctly
+3. **Check Cognito Console**: Verify user pool and app client settings
+4. **Check Environment Variables**: Ensure all required variables are set
+
+### Useful Commands
+
+```bash
+# Check if environment variables are loaded
+console.log(import.meta.env.VITE_AWS_REGION);
+
+# Test AWS Amplify configuration
+import { Auth } from 'aws-amplify';
+console.log(Auth.configure());
+
+# Check current user
+Auth.currentAuthenticatedUser().then(user => console.log(user));
+```
+
+## Security Considerations
+
+### 1. Environment Variables
+
+- Never commit `.env` files to version control
+- Use different configurations for development and production
+- Rotate secrets regularly
+
+### 2. CORS Configuration
+
+- Only allow necessary origins
+- Use HTTPS in production
+- Regularly review and update CORS settings
+
+### 3. User Pool Policies
+
+- Implement strong password policies
+- Enable MFA for sensitive applications
+- Regularly review user pool settings
+
+### 4. Monitoring
+
+- Enable CloudTrail for API calls
+- Monitor failed authentication attempts
+- Set up alerts for suspicious activity
+
+## Additional Resources
+
+- [AWS Cognito Documentation](https://docs.aws.amazon.com/cognito/)
+- [AWS Amplify Documentation](https://docs.amplify.aws/)
+- [React Router Documentation](https://reactrouter.com/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/)
