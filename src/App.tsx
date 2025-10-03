@@ -7,6 +7,8 @@ import './config/aws-config';
 // Lazy load pages for better performance
 const SignUp = React.lazy(() => import('./pages/SignUp'));
 const SignIn = React.lazy(() => import('./pages/SignIn'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 const Home = React.lazy(() => import('./pages/Home'));
 
 // Protected Route Component
@@ -60,6 +62,22 @@ const AppRoutes: React.FC = () => {
           element={
             <PublicRoute>
               <SignIn />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPassword />
             </PublicRoute>
           }
         />

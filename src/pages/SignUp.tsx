@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { SocialButton } from '../components/ui/SocialButton';
+import EmailVerification from '../components/EmailVerification';
 import { useAuthContext } from '../contexts/AuthContext';
 import type { SignUpData } from '../types/auth';
 
 const SignUp: React.FC = () => {
     const navigate = useNavigate();
-    const { signUp, signInWithGoogle, signInWithFacebook, signInWithApple, isLoading, error, clearError } = useAuthContext();
+    const { signUp, signInWithGoogle, signInWithFacebook, signInWithApple, isLoading, error, clearError, signUpChallenge, clearSignUpChallenge } = useAuthContext();
 
     const [formData, setFormData] = useState<SignUpData>({
         email: '',
@@ -57,10 +58,19 @@ const SignUp: React.FC = () => {
 
         try {
             await signUp(formData);
-            navigate('/signin', { state: { message: 'Account created successfully! Please sign in.' } });
+            // Don't navigate immediately - wait for email verification
         } catch (error) {
             console.error('Sign up error:', error);
         }
+    };
+
+    const handleVerificationSuccess = () => {
+        navigate('/signin', { state: { message: 'Account created and verified successfully! Please sign in.' } });
+    };
+
+    const handleBackToSignUp = () => {
+        clearSignUpChallenge();
+        clearError();
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +101,18 @@ const SignUp: React.FC = () => {
             console.error(`${provider} sign up error:`, error);
         }
     };
+
+    // Show email verification if signup challenge exists
+    if (signUpChallenge) {
+        return (
+            <EmailVerification
+                username={signUpChallenge.username}
+                destination={signUpChallenge.destination}
+                onSuccess={handleVerificationSuccess}
+                onBack={handleBackToSignUp}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

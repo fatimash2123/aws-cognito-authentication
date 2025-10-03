@@ -4,13 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { SocialButton } from '../components/ui/SocialButton';
+import { TotpQrCode } from '../components/TotpQrCode';
 import { useAuthContext } from '../contexts/AuthContext';
-import type { SignInData } from '../types/auth';
+import type { SignInData, TotpData } from '../types/auth';
 
 const SignIn: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signIn, signInWithGoogle, signInWithFacebook, signInWithApple, isLoading, error, clearError, isAuthenticated } = useAuthContext();
+    const { signIn, confirmTotpCode, confirmTotpSetup, signInWithGoogle, signInWithFacebook, signInWithApple, isLoading, error, clearError, isAuthenticated, mfaChallenge, user } = useAuthContext();
 
     const [formData, setFormData] = useState<SignInData>({
         email: '',
@@ -18,7 +19,12 @@ const SignIn: React.FC = () => {
         rememberMe: false,
     });
 
+    const [totpData, setTotpData] = useState<TotpData>({
+        code: '',
+    });
+
     const [formErrors, setFormErrors] = useState<Partial<SignInData>>({});
+    const [totpErrors, setTotpErrors] = useState<Partial<TotpData>>({});
     const [successMessage, setSuccessMessage] = useState<string>('');
 
     // Redirect if already authenticated
@@ -52,6 +58,19 @@ const SignIn: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
+    const validateTotpForm = (): boolean => {
+        const errors: Partial<TotpData> = {};
+
+        if (!totpData.code) {
+            errors.code = 'TOTP code is required';
+        } else if (!/^\d{6}$/.test(totpData.code)) {
+            errors.code = 'TOTP code must be 6 digits';
+        }
+
+        setTotpErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         clearError();
@@ -80,6 +99,46 @@ const SignIn: React.FC = () => {
         }
     };
 
+    const handleTotpInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        setTotpData(prev => ({ ...prev, code: value }));
+
+        // Clear error when user starts typing
+        if (totpErrors.code) {
+            setTotpErrors(prev => ({ ...prev, code: undefined }));
+        }
+    };
+
+    const handleTotpSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        clearError();
+        setSuccessMessage('');
+
+        if (!validateTotpForm()) return;
+
+        try {
+            await confirmTotpCode(totpData);
+            navigate('/');
+        } catch (error) {
+            console.error('TOTP verification error:', error);
+        }
+    };
+
+    const handleTotpSetupSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        clearError();
+        setSuccessMessage('');
+
+        if (!validateTotpForm()) return;
+
+        try {
+            await confirmTotpSetup(totpData);
+            navigate('/');
+        } catch (error) {
+            console.error('TOTP setup error:', error);
+        }
+    };
+
     const handleSocialSignIn = async (provider: 'google' | 'facebook' | 'apple') => {
         clearError();
         setSuccessMessage('');
@@ -99,6 +158,144 @@ const SignIn: React.FC = () => {
             console.error(`${provider} sign in error:`, error);
         }
     };
+
+    // Show TOTP setup form if TOTP setup is required
+    if (mfaChallenge?.step === 'CONTINUE_SIGN_IN_WITH_TOTP_SETUP') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-md w-full space-y-8">
+                    <div className="text-center">
+                        <h1 className="text-3xl font-bold text-gray-900">Setup Two-Factor Authentication</h1>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Complete your account security setup
+                        </p>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Setup TOTP</CardTitle>
+                            <CardDescription>
+                                Scan the QR code with your authenticator app, then enter the verification code to complete setup
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {mfaChallenge.sharedSecret && (
+                                <div className="space-y-4">
+                                    <TotpQrCode
+                                        secret={mfaChallenge.sharedSecret}
+                                        email={user?.email || formData.email}
+                                        issuer="Cognito App"
+                                        size={200}
+                                    />
+
+                                    <div className="text-center">
+                                        <details className="text-sm">
+                                            <summary className="cursor-pointer text-gray-600 hover:text-gray-800">
+                                                Can't scan QR code? Show secret key
+                                            </summary>
+                                            <div className="mt-2 p-3 bg-gray-50 rounded">
+                                                <strong>Secret Key:</strong>
+                                                <code className="block mt-1 p-2 bg-gray-100 rounded text-xs font-mono break-all">
+                                                    {mfaChallenge.sharedSecret}
+                                                </code>
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    Manually enter this key into your authenticator app
+                                                </p>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleTotpSetupSubmit} className="space-y-4">
+                                <Input
+                                    label="Verification Code"
+                                    type="text"
+                                    name="code"
+                                    value={totpData.code}
+                                    onChange={handleTotpInputChange}
+                                    error={totpErrors.code}
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    required
+                                />
+
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    isLoading={isLoading}
+                                    disabled={isLoading}
+                                >
+                                    Complete Setup
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
+    // Show TOTP challenge form if MFA is required
+    if (mfaChallenge?.step === 'CONFIRM_SIGN_IN_WITH_TOTP_CODE') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-md w-full space-y-8">
+                    <div className="text-center">
+                        <h1 className="text-3xl font-bold text-gray-900">Two-Factor Authentication</h1>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Enter the 6-digit code from your authenticator app
+                        </p>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Verify TOTP Code</CardTitle>
+                            <CardDescription>
+                                Please enter the verification code from your authenticator app
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {error && (
+                                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleTotpSubmit} className="space-y-4">
+                                <Input
+                                    label="TOTP Code"
+                                    type="text"
+                                    name="code"
+                                    value={totpData.code}
+                                    onChange={handleTotpInputChange}
+                                    error={totpErrors.code}
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    required
+                                />
+
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    isLoading={isLoading}
+                                    disabled={isLoading}
+                                >
+                                    Verify Code
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

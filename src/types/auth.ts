@@ -11,6 +11,14 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  mfaChallenge: MfaChallenge | null;
+  signUpChallenge: SignUpChallenge | null;
+}
+
+export interface MfaChallenge {
+  type: 'TOTP_CODE' | 'TOTP_SETUP';
+  step: 'CONFIRM_SIGN_IN_WITH_TOTP_CODE' | 'CONTINUE_SIGN_IN_WITH_TOTP_SETUP';
+  sharedSecret?: string;
 }
 
 export interface SignUpData {
@@ -24,6 +32,34 @@ export interface SignInData {
   email: string;
   password: string;
   rememberMe?: boolean;
+}
+
+export interface TotpData {
+  code: string;
+}
+
+export interface SignUpChallenge {
+  type: 'EMAIL_VERIFICATION';
+  step: 'CONFIRM_SIGN_UP';
+  username: string;
+  destination: string;
+  deliveryMedium: string;
+  attributeName: string;
+}
+
+export interface ConfirmSignUpData {
+  email: string;
+  code: string;
+}
+
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  code: string;
+  newPassword: string;
 }
 
 export interface AuthError {
